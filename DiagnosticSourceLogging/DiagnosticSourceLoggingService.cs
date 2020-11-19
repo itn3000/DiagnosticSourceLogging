@@ -8,13 +8,13 @@ using System;
 
 namespace DiagnosticSourceLogging
 {
-    public class DiagnosticSourceLoggingService<T> : BackgroundService where T : class, IDiagnosticSourceLoggingServiceOptions
+    public sealed class DiagnosticSourceLoggingService<T> : BackgroundService where T : class, IDiagnosticSourceLoggingServiceOptions
     {
         T _Options;
         ILoggerFactory _LoggerFactory;
-        public DiagnosticSourceLoggingService(ILoggerFactory loggerFactory, IOptions<T> options)
+        public DiagnosticSourceLoggingService(ILoggerFactory loggerFactory, T options)
         {
-            _Options = options.Value;
+            _Options = options;
             _LoggerFactory = loggerFactory;
         }
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)

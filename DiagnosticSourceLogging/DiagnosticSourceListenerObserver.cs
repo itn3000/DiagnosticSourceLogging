@@ -6,9 +6,9 @@ using Microsoft.Extensions.Logging;
 
 namespace DiagnosticSourceLogging
 {
-    internal class EventObserver : IObserver<KeyValuePair<string, object>>
+    internal sealed class EventObserver : IObserver<KeyValuePair<string, object>>
     {
-        private static readonly DiagnosticSource _InternalSource = new DiagnosticListener(nameof(DiagnosticSourceLogging.EventObserver));
+        private static readonly DiagnosticSource _InternalSource = new DiagnosticListener($"{nameof(DiagnosticSourceLogging)}.{nameof(EventObserver)}");
         Func<FormatterArg, Exception, string> Formatter;
         ILogger _Logger;
         Func<string, string, LogLevel> _LogLevelGetter;
@@ -22,12 +22,18 @@ namespace DiagnosticSourceLogging
         }
         public void OnCompleted()
         {
-            _InternalSource.Write("Completed", new { SourceName = _SourceName });
+            if(_InternalSource.IsEnabled("Completed"))
+            {
+                _InternalSource.Write("Completed", new { SourceName = _SourceName });
+            }
         }
 
         public void OnError(Exception error)
         {
-            _InternalSource.Write("Error", new { SourceName = _SourceName, Error = error });
+            if(_InternalSource.IsEnabled("Error"))
+            {
+                _InternalSource.Write("Error", new { SourceName = _SourceName, Error = error });
+            }
         }
 
         public void OnNext(KeyValuePair<string, object> value)
@@ -35,14 +41,14 @@ namespace DiagnosticSourceLogging
             _Logger.Log(_LogLevelGetter(_SourceName, value.Key), (EventId)1, new FormatterArg(_SourceName, value.Key, value.Value), null, Formatter);
         }
     }
-    internal class DiagnosticSourceListenerObserver : IObserver<DiagnosticListener>
+    internal sealed class DiagnosticSourceListenerObserver : IObserver<DiagnosticListener>
     {
         public DiagnosticSourceListenerObserver(IDiagnosticSourceLoggingServiceOptions options, ILoggerFactory loggerFactory)
         {
             _Options = options;
             _LoggerFactory = loggerFactory;
         }
-        private static readonly DiagnosticListener _InternalSource = new DiagnosticListener(nameof(DiagnosticSourceLogging.DiagnosticSourceListenerObserver));
+        private static readonly DiagnosticListener _InternalSource = new DiagnosticListener($"{nameof(DiagnosticSourceLogging)}.{nameof(DiagnosticSourceListenerObserver)}");
         ConcurrentDictionary<string, IDisposable> _Subscriptions = new ConcurrentDictionary<string, IDisposable>();
         IDiagnosticSourceLoggingServiceOptions _Options;
         ILoggerFactory _LoggerFactory;
@@ -51,6 +57,13 @@ namespace DiagnosticSourceLogging
             if (_InternalSource.IsEnabled("Completed"))
             {
                 _InternalSource.Write("Completed", new { Name = _InternalSource.Name });
+            }
+            foreach(var item in _Subscriptions.Keys)
+            {
+                if(_Subscriptions.TryRemove(item, out var value))
+                {
+                    value.Dispose();
+                }
             }
         }
 
@@ -66,9 +79,13 @@ namespace DiagnosticSourceLogging
         {
             if (_Options.ShouldListen(value) && _Subscriptions.TryAdd(value.Name, null))
             {
-                _Subscriptions[value.Name] = value
-                    .Subscribe(new EventObserver(value.Name, _Options.Formatter, _Options.LogLevelGetter, _LoggerFactory.CreateLogger(value.Name)),
-                        _Options.IsEnabled);
+                string sourceName = value.Name;
+                _Subscriptions[sourceName] = value
+                    .Subscribe(new EventObserver(sourceName,
+                        _Options.Formatter,
+                        _Options.LogLevelGetter,
+                        _LoggerFactory.CreateLogger(sourceName)),
+                        (evname, arg1, arg2) => _Options.IsEnabled(sourceName, evname, arg1, arg2));
             }
         }
     }
