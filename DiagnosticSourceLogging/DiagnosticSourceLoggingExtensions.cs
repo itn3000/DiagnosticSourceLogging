@@ -14,12 +14,21 @@ namespace Microsoft.Extensions.DependencyInjection
             {
                 if (optionsFactory != null)
                 {
-                    builder.AddTransient<T>(optionsFactory);
+                    builder.AddSingleton<T>(optionsFactory);
                 }
                 else
                 {
-                    builder.AddTransient<T>();
+                    builder.AddSingleton<T>();
                 }
+                builder.AddHostedService<DiagnosticSourceLoggingService<T>>();
+            });
+        }
+        public static IHostBuilder AddDiagnosticSourceLoggingService<T>(this IHostBuilder hostbuilder,
+            T options) where T : class, IDiagnosticSourceLoggingServiceOptions
+        {
+            return hostbuilder.ConfigureServices(builder =>
+            {
+                builder.AddSingleton(options);
                 builder.AddHostedService<DiagnosticSourceLoggingService<T>>();
             });
         }
