@@ -11,13 +11,35 @@ namespace DiagnosticSourceLogging.Test
 {
     class MyDiagnosticSourceLoggingServiceOptions : IDiagnosticSourceLoggingServiceOptions
     {
-        public Func<DiagnosticListener, bool> ShouldListen => x => x.Name.StartsWith("DiagnosticSourceLogging.Test");
+        public string Formatter(FormatterArg arg, Exception error)
+        {
+            return $"{arg.SourceName}/{arg.EventName}: {arg.Arg}";
+        }
 
-        public Func<string, string, object, object, bool> IsEnabled => (sourceName, eventName, arg1, arg2) => true;
+        public EventId GetEventId(string sourceName, string eventName)
+        {
+            return new EventId(1, $"{sourceName}.{eventName}");
+        }
 
-        public Func<FormatterArg, Exception, string> Formatter => (arg, e) => $"{arg.SourceName}/{arg.EventName}: {arg.Arg}";
+        public string GetFormattedString(string sourceName, string eventName, object arg)
+        {
+            return $"{sourceName}/{eventName}: {arg}";
+        }
 
-        public Func<string, string, LogLevel> LogLevelGetter => (sourceName, eventName) => LogLevel.Information;
+        public LogLevel GetLogLevel(string sourceName, string eventName)
+        {
+            return LogLevel.Information;
+        }
+
+        public bool IsEnabled(string sourceName, string eventName, object arg1, object arg2)
+        {
+            return true;
+        }
+
+        public bool ShouldListen(DiagnosticListener listener)
+        {
+            return listener.Name.StartsWith("DiagnosticSourceLogging.Test");
+        }
     }
     public class UnitTest1
     {

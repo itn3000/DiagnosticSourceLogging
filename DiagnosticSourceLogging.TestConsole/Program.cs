@@ -25,16 +25,31 @@ namespace DiagnosticSourceLogging.TestConsole
     }
     class MyDiagnosticSourceLoggingServiceOptions : IDiagnosticSourceLoggingServiceOptions
     {
-        public Func<DiagnosticListener, bool> ShouldListen => x => 
+        public EventId GetEventId(string sourceName, string eventName)
         {
-            return x.Name.StartsWith("DiagnosticSourceLogging");
-        };
+            return new EventId(1, $"{sourceName}.{eventName}");
+        }
 
-        public Func<string, string, object, object, bool> IsEnabled => (sourceName, eventName, arg1, arg2) => true;
+        public string GetFormattedString(string sourceName, string eventName, object arg)
+        {
+            dynamic x = arg;
+            return $"{sourceName}/{eventName}: {x.arg1}";
+        }
 
-        public Func<FormatterArg, Exception, string> Formatter => (arg, e) => $"{arg.SourceName}/{arg.EventName}: {arg.Arg}";
+        public LogLevel GetLogLevel(string sourceName, string eventName)
+        {
+            return LogLevel.Information;
+        }
 
-        public Func<string, string, LogLevel> LogLevelGetter => (sourceName, eventName) => LogLevel.Information;
+        public bool IsEnabled(string sourceName, string eventName, object arg1, object arg2)
+        {
+            return true;
+        }
+
+        public bool ShouldListen(DiagnosticListener listener)
+        {
+            return listener.Name.StartsWith("DiagnosticSourceLogging.Test");
+        }
     }
     class Program
     {
