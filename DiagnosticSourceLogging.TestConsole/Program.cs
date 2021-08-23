@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Concurrent;
 
 namespace DiagnosticSourceLogging.TestConsole
 {
@@ -25,19 +26,25 @@ namespace DiagnosticSourceLogging.TestConsole
     }
     class MyDiagnosticSourceLoggingServiceOptions : IDiagnosticSourceLoggingServiceOptions
     {
+        ConcurrentDictionary<(string sourceName, string eventName), Action<ILogger, string, object>> Processors = new();
         public Action<ILogger, string, object> GetEventProcessor(string sourceName, string eventName)
         {
-            return (ILogger logger, string name, object arg) => logger.LogInformation(new EventId(100, "eventid1"),"{name}, {arg}", name, arg);
+            return Processors.GetOrAdd((sourceName, eventName), n =>
+            {
+                var f = LoggerMessage.Define<string, object>(LogLevel.Information, new EventId(1, $"{n.sourceName}"), "{0}: {1}");
+                return (ILogger logger, string msg, object arg) => f(logger, msg, arg, null);
+            });
         }
 
         public bool IsEnabled(string sourceName, string eventName, object arg1, object arg2)
         {
+            Console.WriteLine($"IsEnabled: {sourceName}/{eventName}");
             return true;
         }
 
         public bool ShouldListen(DiagnosticListener listener)
         {
-            Console.WriteLine($"sourcename: {listener.Name}");
+            Console.WriteLine($"ShouldListen: {listener.Name}");
             return listener.Name.StartsWith("DiagnosticSourceLogging.Test");
         }
     }

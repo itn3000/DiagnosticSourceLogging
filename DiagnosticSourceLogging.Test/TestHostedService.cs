@@ -12,16 +12,13 @@ namespace DiagnosticSourceLogging.Test
 {
     class MyDiagnosticSourceLoggingServiceOptions : IDiagnosticSourceLoggingServiceOptions
     {
-        bool _initialized = false;
-        Action<ILogger, string, object> _action = null;
-        object _synclock = new object();
+        ConcurrentDictionary<(string sourceName, string eventName), Action<ILogger, string, object>> Processors = new();
         public Action<ILogger, string, object> GetEventProcessor(string sourceName, string eventName)
         {
-            return LazyInitializer.EnsureInitialized(ref _action, ref _initialized, ref _synclock, () => 
+            return Processors.GetOrAdd((sourceName, eventName), n =>
             {
-                var f = LoggerMessage.Define<string, object>(LogLevel.Information, new EventId(1, $"{sourceName}/{eventName}"), "{0}: {1}");
-                Action<ILogger, string, object> retf = (ILogger logger, string msg, object arg) => f(logger, msg, arg, null);
-                return retf;
+                var f = LoggerMessage.Define<string, object>(LogLevel.Information, new EventId(1, $"{n.sourceName}"), "{0}: {1}");
+                return (ILogger logger, string msg, object arg) => f(logger, msg, arg, null);
             });
         }
 
