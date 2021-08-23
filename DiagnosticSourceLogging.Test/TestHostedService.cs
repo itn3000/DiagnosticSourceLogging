@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Threading;
 
@@ -11,13 +12,25 @@ namespace DiagnosticSourceLogging.Test
 {
     class MyDiagnosticSourceLoggingServiceOptions : IDiagnosticSourceLoggingServiceOptions
     {
-        public Func<DiagnosticListener, bool> ShouldListen => x => x.Name.StartsWith("DiagnosticSourceLogging.Test");
+        ConcurrentDictionary<(string sourceName, string eventName), Action<ILogger, string, object>> Processors = new();
+        public Action<ILogger, string, object> GetEventProcessor(string sourceName, string eventName)
+        {
+            return Processors.GetOrAdd((sourceName, eventName), n =>
+            {
+                var f = LoggerMessage.Define<string, object>(LogLevel.Information, new EventId(1, $"{n.sourceName}"), "{0}: {1}");
+                return (ILogger logger, string msg, object arg) => f(logger, msg, arg, null);
+            });
+        }
 
-        public Func<string, string, object, object, bool> IsEnabled => (sourceName, eventName, arg1, arg2) => true;
+        public bool IsEnabled(string sourceName, string eventName, object arg1, object arg2)
+        {
+            return true;
+        }
 
-        public Func<FormatterArg, Exception, string> Formatter => (arg, e) => $"{arg.SourceName}/{arg.EventName}: {arg.Arg}";
-
-        public Func<string, string, LogLevel> LogLevelGetter => (sourceName, eventName) => LogLevel.Information;
+        public bool ShouldListen(DiagnosticListener listener)
+        {
+            return listener.Name.StartsWith("DiagnosticSourceLogging.Test");
+        }
     }
     public class UnitTest1
     {

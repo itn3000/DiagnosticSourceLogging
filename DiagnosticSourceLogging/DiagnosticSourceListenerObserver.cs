@@ -6,19 +6,19 @@ using Microsoft.Extensions.Logging;
 
 namespace DiagnosticSourceLogging
 {
+    using LoggerMessageFunction = Action<ILogger, string, Exception>;
     internal sealed class EventObserver : IObserver<KeyValuePair<string, object>>
     {
+        private readonly ConcurrentDictionary<(string sourceName, string eventName), LoggerMessageFunction> LoggerMessages = new ConcurrentDictionary<(string sourceName, string eventName), LoggerMessageFunction>();
         private static readonly DiagnosticSource _InternalSource = new DiagnosticListener($"{nameof(DiagnosticSourceLogging)}.{nameof(EventObserver)}");
-        Func<FormatterArg, Exception, string> Formatter;
         ILogger _Logger;
-        Func<string, string, LogLevel> _LogLevelGetter;
+        IDiagnosticSourceLoggingServiceOptions _Options;
         string _SourceName;
-        public EventObserver(string sourceName, Func<FormatterArg, Exception, string> formatter, Func<string, string, LogLevel> logLevelGetter, ILogger logger)
+        public EventObserver(string sourceName, ILogger logger, IDiagnosticSourceLoggingServiceOptions options)
         {
             _SourceName = sourceName;
-            Formatter = formatter;
             _Logger = logger;
-            _LogLevelGetter = logLevelGetter;
+            _Options = options;
         }
         public void OnCompleted()
         {
@@ -38,7 +38,8 @@ namespace DiagnosticSourceLogging
 
         public void OnNext(KeyValuePair<string, object> value)
         {
-            _Logger.Log(_LogLevelGetter(_SourceName, value.Key), (EventId)1, new FormatterArg(_SourceName, value.Key, value.Value), null, Formatter);
+            var action = _Options.GetEventProcessor(_SourceName, value.Key);
+            action(_Logger, value.Key, value.Value);
         }
     }
     internal sealed class DiagnosticSourceListenerObserver : IObserver<DiagnosticListener>
@@ -62,7 +63,7 @@ namespace DiagnosticSourceLogging
             {
                 if(_Subscriptions.TryRemove(item, out var value))
                 {
-                    value.Dispose();
+                    value?.Dispose();
                 }
             }
         }
@@ -82,9 +83,8 @@ namespace DiagnosticSourceLogging
                 string sourceName = value.Name;
                 _Subscriptions[sourceName] = value
                     .Subscribe(new EventObserver(sourceName,
-                        _Options.Formatter,
-                        _Options.LogLevelGetter,
-                        _LoggerFactory.CreateLogger(sourceName)),
+                        _LoggerFactory.CreateLogger(sourceName),
+                        _Options),
                         (evname, arg1, arg2) => _Options.IsEnabled(sourceName, evname, arg1, arg2));
             }
         }
