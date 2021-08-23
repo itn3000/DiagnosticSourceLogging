@@ -7,10 +7,54 @@ using Microsoft.Extensions.Logging;
 namespace DiagnosticSourceLogging
 {
     using LoggerMessageFunction = Action<ILogger, string, Exception>;
+    public sealed class EventObserverErrorArg
+    {
+        public const string Name = "Error";
+        public string SourceName { get; }
+        public Exception Error { get; }
+        public EventObserverErrorArg(string sourceName, Exception error)
+        {
+            SourceName = sourceName;
+            Error = error;
+        }
+        public override string ToString()
+        {
+            return $"{SourceName}: {Error}";
+        }
+    }
+    public sealed class EventObserverProcessErrorArg
+    {
+        public const string Name = "ProcessError";
+        public string SourceName { get; }
+        public string EventName { get; }
+        public Exception Error { get; }
+        public EventObserverProcessErrorArg(string sourceName, string eventName, Exception error)
+        {
+            SourceName = sourceName;
+            EventName = eventName;
+            Error = error;
+        }
+        public override string ToString()
+        {
+            return $"{SourceName}/{EventName}: {Error}";
+        }
+    }
+    public sealed class EventObserverCompletedArg
+    {
+        public const string Name = "Completed";
+        public string SourceName { get; }
+        public EventObserverCompletedArg(string sourceName)
+        {
+            SourceName = sourceName;
+        }
+        public override string ToString()
+        {
+            return SourceName;
+        }
+    }
     internal sealed class EventObserver : IObserver<KeyValuePair<string, object>>
     {
-        private readonly ConcurrentDictionary<(string sourceName, string eventName), LoggerMessageFunction> LoggerMessages = new ConcurrentDictionary<(string sourceName, string eventName), LoggerMessageFunction>();
-        private static readonly DiagnosticSource _InternalSource = new DiagnosticListener($"{nameof(DiagnosticSourceLogging)}.{nameof(EventObserver)}");
+        private static readonly DiagnosticListener _InternalSource = new DiagnosticListener(Constants.EventObserverSourceName);
         ILogger _Logger;
         IDiagnosticSourceLoggingServiceOptions _Options;
         string _SourceName;
@@ -22,24 +66,34 @@ namespace DiagnosticSourceLogging
         }
         public void OnCompleted()
         {
-            if(_InternalSource.IsEnabled("Completed"))
+            if (_InternalSource.IsEnabled(EventObserverCompletedArg.Name))
             {
-                _InternalSource.Write("Completed", new { SourceName = _SourceName });
+                _InternalSource.Write(EventObserverCompletedArg.Name, new EventObserverCompletedArg(_SourceName));
             }
         }
 
         public void OnError(Exception error)
         {
-            if(_InternalSource.IsEnabled("Error"))
+            if (_InternalSource.IsEnabled(EventObserverErrorArg.Name))
             {
-                _InternalSource.Write("Error", new { SourceName = _SourceName, Error = error });
+                _InternalSource.Write(EventObserverErrorArg.Name, new EventObserverErrorArg(_SourceName, error));
             }
         }
 
         public void OnNext(KeyValuePair<string, object> value)
         {
             var action = _Options.GetEventProcessor(_SourceName, value.Key);
-            action(_Logger, value.Key, value.Value);
+            try
+            {
+                action(_Logger, value.Key, value.Value);
+            }
+            catch (Exception e)
+            {
+                if (_InternalSource.IsEnabled(EventObserverProcessErrorArg.Name))
+                {
+                    _InternalSource.Write(EventObserverProcessErrorArg.Name, new EventObserverProcessErrorArg(_SourceName, value.Key, e));
+                }
+            }
         }
     }
     internal sealed class DiagnosticSourceListenerObserver : IObserver<DiagnosticListener>
@@ -59,9 +113,9 @@ namespace DiagnosticSourceLogging
             {
                 _InternalSource.Write("Completed", new { Name = _InternalSource.Name });
             }
-            foreach(var item in _Subscriptions.Keys)
+            foreach (var item in _Subscriptions.Keys)
             {
-                if(_Subscriptions.TryRemove(item, out var value))
+                if (_Subscriptions.TryRemove(item, out var value))
                 {
                     value?.Dispose();
                 }
