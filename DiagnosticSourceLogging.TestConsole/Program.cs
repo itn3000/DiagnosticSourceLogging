@@ -25,20 +25,9 @@ namespace DiagnosticSourceLogging.TestConsole
     }
     class MyDiagnosticSourceLoggingServiceOptions : IDiagnosticSourceLoggingServiceOptions
     {
-        public EventId GetEventId(string sourceName, string eventName)
+        public Action<ILogger, string, object> GetEventProcessor(string sourceName, string eventName)
         {
-            return new EventId(1, $"{sourceName}.{eventName}");
-        }
-
-        public string GetFormattedString(string sourceName, string eventName, object arg)
-        {
-            dynamic x = arg;
-            return $"{sourceName}/{eventName}: {x.arg1}";
-        }
-
-        public LogLevel GetLogLevel(string sourceName, string eventName)
-        {
-            return LogLevel.Information;
+            return (ILogger logger, string name, object arg) => logger.LogInformation(new EventId(100, "eventid1"),"{name}, {arg}", name, arg);
         }
 
         public bool IsEnabled(string sourceName, string eventName, object arg1, object arg2)
@@ -48,6 +37,7 @@ namespace DiagnosticSourceLogging.TestConsole
 
         public bool ShouldListen(DiagnosticListener listener)
         {
+            Console.WriteLine($"sourcename: {listener.Name}");
             return listener.Name.StartsWith("DiagnosticSourceLogging.Test");
         }
     }

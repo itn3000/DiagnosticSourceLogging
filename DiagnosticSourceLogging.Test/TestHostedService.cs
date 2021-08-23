@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Threading;
 
@@ -11,24 +12,17 @@ namespace DiagnosticSourceLogging.Test
 {
     class MyDiagnosticSourceLoggingServiceOptions : IDiagnosticSourceLoggingServiceOptions
     {
-        public string Formatter(FormatterArg arg, Exception error)
+        bool _initialized = false;
+        Action<ILogger, string, object> _action = null;
+        object _synclock = new object();
+        public Action<ILogger, string, object> GetEventProcessor(string sourceName, string eventName)
         {
-            return $"{arg.SourceName}/{arg.EventName}: {arg.Arg}";
-        }
-
-        public EventId GetEventId(string sourceName, string eventName)
-        {
-            return new EventId(1, $"{sourceName}.{eventName}");
-        }
-
-        public string GetFormattedString(string sourceName, string eventName, object arg)
-        {
-            return $"{sourceName}/{eventName}: {arg}";
-        }
-
-        public LogLevel GetLogLevel(string sourceName, string eventName)
-        {
-            return LogLevel.Information;
+            return LazyInitializer.EnsureInitialized(ref _action, ref _initialized, ref _synclock, () => 
+            {
+                var f = LoggerMessage.Define<string, object>(LogLevel.Information, new EventId(1, $"{sourceName}/{eventName}"), "{0}: {1}");
+                Action<ILogger, string, object> retf = (ILogger logger, string msg, object arg) => f(logger, msg, arg, null);
+                return retf;
+            });
         }
 
         public bool IsEnabled(string sourceName, string eventName, object arg1, object arg2)

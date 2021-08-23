@@ -11,11 +11,8 @@ namespace DiagnosticSourceLogging
     {
         private readonly ConcurrentDictionary<(string sourceName, string eventName), LoggerMessageFunction> LoggerMessages = new ConcurrentDictionary<(string sourceName, string eventName), LoggerMessageFunction>();
         private static readonly DiagnosticSource _InternalSource = new DiagnosticListener($"{nameof(DiagnosticSourceLogging)}.{nameof(EventObserver)}");
-        Func<FormatterArg, Exception, string> Formatter;
         ILogger _Logger;
         IDiagnosticSourceLoggingServiceOptions _Options;
-        Func<string, string, LogLevel> _;
-        Func<string, string, EventId> _EventIdGetter;
         string _SourceName;
         public EventObserver(string sourceName, ILogger logger, IDiagnosticSourceLoggingServiceOptions options)
         {
@@ -41,17 +38,8 @@ namespace DiagnosticSourceLogging
 
         public void OnNext(KeyValuePair<string, object> value)
         {
-            _Logger.Log(_Options.GetLogLevel(_SourceName, value.Key),
-                _Options.GetEventId(_SourceName, value.Key)
-                , (source: _SourceName, value: value), null, (state, e) => _Options.Formatter(state.source, state.value, e));
-            if(!LoggerMessages.TryGetValue((_SourceName, value.Key), out var action))
-            {
-                action = LoggerMessage.Define<string>(_Options.GetLogLevel(_SourceName, value.Key),
-                    _Options.GetEventId(_SourceName, value.Key),
-                    "{0}");
-                LoggerMessages.TryAdd((_SourceName, value.Key), action);
-            }
-            action(_Logger, _Options.GetFormattedString(_SourceName, value.Key, value.Value), null);
+            var action = _Options.GetEventProcessor(_SourceName, value.Key);
+            action(_Logger, value.Key, value.Value);
         }
     }
     internal sealed class DiagnosticSourceListenerObserver : IObserver<DiagnosticListener>

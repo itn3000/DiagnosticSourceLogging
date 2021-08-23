@@ -30,9 +30,6 @@ namespace DiagnosticSourceLogging
         /// <param name="arg2">equals to DiagnosticSource.IsEnabled 3rd argument</param>
         /// <remarks>This may be called many times</remarks>
         bool IsEnabled(string sourceName, string eventName, object arg1, object arg2);
-        string GetFormattedString(string sourceName, string eventName, object arg);
-        LogLevel GetLogLevel(string sourceName, string eventName);
-        EventId GetEventId(string sourceName, string eventName);
-        string Formatter(string sourceName, KeyValuePair<string, object> kv, Exception exception);
+        Action<ILogger, string, object> GetEventProcessor(string sourceName, string eventName);
     }
 }
