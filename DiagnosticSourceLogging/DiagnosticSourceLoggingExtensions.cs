@@ -10,7 +10,7 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IHostBuilder AddDiagnosticSourceLoggingService<T>(this IHostBuilder hostbuilder,
             Func<IServiceProvider, T> optionsFactory = null) where T : class, IDiagnosticSourceLoggingServiceOptions
         {
-            return hostbuilder.ConfigureServices(builder =>
+            return hostbuilder.ConfigureServices((context, builder) =>
             {
                 if (optionsFactory != null)
                 {
@@ -26,7 +26,7 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IHostBuilder AddDiagnosticSourceLoggingService<T>(this IHostBuilder hostbuilder,
             T options) where T : class, IDiagnosticSourceLoggingServiceOptions
         {
-            return hostbuilder.ConfigureServices(builder =>
+            return hostbuilder.ConfigureServices((context, builder) =>
             {
                 builder.AddSingleton(options);
                 builder.AddHostedService<DiagnosticSourceLoggingService<T>>();

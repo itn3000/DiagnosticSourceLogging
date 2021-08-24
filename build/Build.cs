@@ -27,6 +27,8 @@ class Build : NukeBuild
     readonly Configuration Configuration = IsLocalBuild ? Configuration.Debug : Configuration.Release;
     [Parameter("TargetPlatform")]
     readonly string TargetPlatform;
+    [Parameter("Version suffix")]
+    readonly string VersionSuffix = "";
 
     [Solution] readonly Solution Solution;
 
@@ -50,6 +52,15 @@ class Build : NukeBuild
         {
             DotNetBuild(settings => settings.SetConfiguration(Configuration));
         });
+    Target Test => _ => _
+        .DependsOn(Compile)
+        .Executes(() =>
+        {
+            DotNetTest(settings => 
+                settings.SetConfiguration(Configuration)
+                    .SetLogger("trx")
+                );
+        });
     Target Publish => _ => _
         .DependsOn(Compile)
         .Executes(() =>
@@ -57,6 +68,7 @@ class Build : NukeBuild
             DotNetPublish(settings =>
                 settings.SetProject(RootDirectory / "DiagnosticSourceLogging" / "DiagnosticSourceLogging.csproj")
                     .SetConfiguration(Configuration)
+                    .SetVersionSuffix(VersionSuffix)
                 );
         });
     Target Pack => _ => _
@@ -64,6 +76,7 @@ class Build : NukeBuild
         .Executes(() =>
         {
             DotNetPack(settings => settings.SetConfiguration(Configuration)
+                .SetVersionSuffix(VersionSuffix)
                 .SetOutputDirectory(RootDirectory / "dist" / Configuration));
         });
 
