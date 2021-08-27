@@ -5,6 +5,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
     steps:
       - uses: actions/checkout@v2
       - name: Setup .NET Core SDK 5.0
@@ -20,7 +22,7 @@ jobs:
           name: dotnet-test-results
           path: DiagnosticSourceLogging.Test/TestResults
       - name: build and pack nuget package
-        run: pwsh ./build.ps1 --target Pack --configuration Release --version-suffix 
+        run: pwsh ./build.ps1 --target Pack --configuration Release --version-suffix ${{github.run_id}}
       - name: collect artifacts
         uses: actions/upload-artifact@v2
         with:
