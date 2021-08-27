@@ -20,17 +20,21 @@ jobs:
         with:
           name: dotnet-test-results
           path: DiagnosticSourceLogging.Test/TestResults
-      - name: build and pack nuget package
+      - name: build and pack nuget package(Preview)
         run: pwsh ./build.ps1 --target Pack --configuration Release --version-suffix preview.${{github.run_id}}
+        if: ${{!startsWith(github.ref, 'refs/tags/')}}
+      - name: build and pack nuget package(Release)
+        run: pwsh ./build.ps1 --target Pack --configuration Release
+        if: ${{startsWith(github.ref, 'refs/tags/')}}
       - name: collect artifacts
         uses: actions/upload-artifact@v2
         with:
           name: nuget-package
           path: dist/Release
-        if: ${{github.ref == 'refs/heads/master'}}
-      - name: hoge
-        run: echo ${{github.ref}}
+        if: ${{(github.ref == 'refs/heads/master') || (startsWith(github.ref, 'refs/tags')}}
       - name: upload artifacts to github packages
         run: pwsh ./build.ps1 --target Push --api-key ${{ secrets.GITHUB_TOKEN }} --package-source https://nuget.pkg.github.com/itn3000/index.json --configuration Release
-        if: ${{github.ref == 'refs/heads/master'}}
-
+        if: ${{(github.ref == 'refs/heads/master') || (startsWith(github.ref, 'refs/tags')}}
+      - name: upload artifacts to nuget.org
+        run: pwsh ./build.ps1 --target Push --api-key ${{ secrets.NUGET_API_KEY }} --package-source https://api.nuget.org/v3/index.json --configuration Release
+        if: ${{startsWith(github.ref, 'refs/tags')}}
