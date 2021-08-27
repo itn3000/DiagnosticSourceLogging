@@ -59,6 +59,7 @@ class Build : NukeBuild
             DotNetTest(settings =>
                 settings.SetConfiguration(Configuration)
                     .SetLogger("trx")
+                    .SetNoBuild(true)
                 );
         });
     Target Publish => _ => _
@@ -69,6 +70,7 @@ class Build : NukeBuild
                 settings.SetProject(RootDirectory / "DiagnosticSourceLogging" / "DiagnosticSourceLogging.csproj")
                     .SetConfiguration(Configuration)
                     .SetVersionSuffix(VersionSuffix)
+                    .SetNoBuild(true)
                 );
         });
     Target Pack => _ => _
@@ -77,14 +79,15 @@ class Build : NukeBuild
         {
             DotNetPack(settings => settings.SetConfiguration(Configuration)
                 .SetVersionSuffix(VersionSuffix)
-                .SetOutputDirectory(RootDirectory / "dist" / Configuration));
+                .SetOutputDirectory(RootDirectory / "dist" / Configuration)
+                .SetNoBuild(true));
         });
     [Parameter("nuget api key")]
     readonly string ApiKey;
     [Parameter("nuget package source for push")]
     readonly string PackageSource;
     Target Push => _ => _
-        .DependsOn(Pack)
+        .After(Pack)
         .Executes(() =>
         {
             var packagedir = RootDirectory / "dist" / Configuration;
