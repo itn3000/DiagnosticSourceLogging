@@ -27,8 +27,10 @@ jobs:
         with:
           name: nuget-package
           path: dist/Release
-        if: ${{github.head_ref == 'refs/heads/master'}}
+        if: ${{github.ref == 'refs/heads/master'}}
+      - name: hoge
+        run: echo ${{github.ref}}
       - name: upload artifacts to github packages
         run: pwsh ./build.ps1 --target Push --api-key ${{ secrets.GITHUB_TOKEN }} --package-source https://nuget.pkg.github.com/itn3000/index.json --configuration Release
-        if: ${{github.head_ref == 'refs/heads/master'}}
+        if: ${{github.ref == 'refs/heads/master'}}
 
