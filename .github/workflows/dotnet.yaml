@@ -24,7 +24,7 @@ jobs:
         run: pwsh ./build.ps1 --target Pack --configuration Release --version-suffix preview.${{github.run_id}}
       - name: collect artifacts
         uses: actions/upload-artifact@v2
-        if: ${{ github.head_ref == "master" }}
+        if: ${{ github.head_ref == 'master' }}
         with:
           name: nuget-package
           path: dist/Release
