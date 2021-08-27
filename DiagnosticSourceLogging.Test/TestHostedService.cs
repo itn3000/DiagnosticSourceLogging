@@ -39,9 +39,9 @@ namespace DiagnosticSourceLogging.Test
             private static readonly DiagnosticListener _Source = new DiagnosticListener(nameof(DiagnosticSourceLogging.Test));
             protected override async Task ExecuteAsync(CancellationToken stoppingToken)
             {
-                while(!stoppingToken.IsCancellationRequested)
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    if(_Source.IsEnabled("ev1"))
+                    if (_Source.IsEnabled("ev1"))
                     {
                         _Source.Write("ev1", new { arg1 = 1 });
                     }
@@ -52,15 +52,22 @@ namespace DiagnosticSourceLogging.Test
         [Fact]
         public async Task TestHostedService()
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-            await  Host.CreateDefaultBuilder()
-                .AddDiagnosticSourceLoggingService<MyDiagnosticSourceLoggingServiceOptions>()
-                .ConfigureServices((ctx, services) =>
-                {
-                    services.AddHostedService<TestService>();
-                })
-                .RunConsoleAsync(cts.Token)
-                ;
+            using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
+            try
+            {
+                await Host.CreateDefaultBuilder()
+                    .AddDiagnosticSourceLoggingService<MyDiagnosticSourceLoggingServiceOptions>()
+                    .ConfigureServices((ctx, services) =>
+                    {
+                        services.AddHostedService<TestService>();
+                    })
+                    .RunConsoleAsync(cts.Token)
+                    ;
+            }
+            catch (OperationCanceledException)
+            {
+
+            }
         }
     }
 }
