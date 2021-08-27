@@ -1,6 +1,5 @@
 name: dotnet package
-on:
-  - push
+on: push
 
 jobs:
   build:
@@ -22,9 +21,12 @@ jobs:
           name: dotnet-test-results
           path: DiagnosticSourceLogging.Test/TestResults
       - name: build and pack nuget package
-        run: pwsh ./build.ps1 --target Pack --configuration Release --version-suffix ${{github.run_id}}
+        run: pwsh ./build.ps1 --target Pack --configuration Release --version-suffix preview.${{github.run_id}}
       - name: collect artifacts
         uses: actions/upload-artifact@v2
+        if: ${{ github.head_ref == "master" }}
         with:
           name: nuget-package
           path: dist/Release
+      - name: upload artifacts to github packages
+        run: pwsh ./build.ps1 --target Push --api-key ${{ secrets.GITHUB_TOKEN }} --package-source https://nuget.pkg.github.com/itn3000/index.json --configuration Release

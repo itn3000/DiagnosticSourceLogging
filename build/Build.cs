@@ -21,7 +21,7 @@ class Build : NukeBuild
     ///   - Microsoft VisualStudio     https://nuke.build/visualstudio
     ///   - Microsoft VSCode           https://nuke.build/vscode
 
-    public static int Main () => Execute<Build>(x => x.Compile);
+    public static int Main() => Execute<Build>(x => x.Compile);
 
     [Parameter("Configuration to build - Default is 'Debug' (local) or 'Release' (server)")]
     readonly Configuration Configuration = IsLocalBuild ? Configuration.Debug : Configuration.Release;
@@ -56,7 +56,7 @@ class Build : NukeBuild
         .DependsOn(Compile)
         .Executes(() =>
         {
-            DotNetTest(settings => 
+            DotNetTest(settings =>
                 settings.SetConfiguration(Configuration)
                     .SetLogger("trx")
                 );
@@ -79,5 +79,23 @@ class Build : NukeBuild
                 .SetVersionSuffix(VersionSuffix)
                 .SetOutputDirectory(RootDirectory / "dist" / Configuration));
         });
-
+    [Parameter("nuget api key")]
+    readonly string ApiKey;
+    [Parameter("nuget package source for push")]
+    readonly string PackageSource;
+    Target Push => _ => _
+        .DependsOn(Pack)
+        .Executes(() =>
+        {
+            var packagedir = RootDirectory / "dist" / Configuration;
+            var nupkgs = !string.IsNullOrEmpty(VersionSuffix) ? GlobDirectories(packagedir, $"DiagnosticSourceLogging.*.{VersionSuffix}.*")
+                : GlobFiles(packagedir, $"DiagnosticSourceLogging.*");
+            foreach (var nupkgPath in nupkgs)
+            {
+                Logger.Info($"pushing {nupkgPath}");
+                DotNetNuGetPush(cfg => cfg.SetApiKey(ApiKey)
+                    .SetTargetPath(nupkgPath)
+                    .SetSource(PackageSource));
+            }
+        });
 }
