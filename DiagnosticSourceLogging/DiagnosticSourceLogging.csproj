@@ -12,6 +12,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <ProjectUrl>https://github.com/itn3000/DiagnosticSourceLogging</ProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>ILogger;logging;DiagnosticSource</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
