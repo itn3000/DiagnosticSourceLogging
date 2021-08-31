@@ -11,6 +11,8 @@ using static Nuke.Common.IO.FileSystemTasks;
 using static Nuke.Common.IO.PathConstruction;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
 using Nuke.Common.Tools.DotNet;
+using Octokit;
+using System.IO;
 
 [CheckBuildProjectConfigurations]
 class Build : NukeBuild
@@ -99,6 +101,40 @@ class Build : NukeBuild
                 DotNetNuGetPush(cfg => cfg.SetApiKey(ApiKey)
                     .SetTargetPath(nupkgPath)
                     .SetSource(PackageSource));
+            }
+        });
+    [Parameter]
+    readonly string GithubToken;
+    [Parameter]
+    readonly string GithubOwner;
+    [Parameter]
+    readonly string ReleaseTag;
+    Target CreateGitHubRelease => _ => _
+        .After(Pack)
+        .Requires(() => GithubToken)
+        .Requires(() => GithubOwner)
+        .Executes(async () =>
+        {
+            var packagedir = RootDirectory / "dist" / Configuration;
+            var nupkgs = !string.IsNullOrEmpty(VersionSuffix) ? GlobDirectories(packagedir, $"DiagnosticSourceLogging.*.{VersionSuffix}.*")
+                : GlobFiles(packagedir, $"DiagnosticSourceLogging.*");
+            var client = new GitHubClient(new ProductHeaderValue("DiagnosticSourceLoggingClient"));
+            var cred = new Credentials(GithubToken);
+            client.Credentials = cred;
+            var repo = await client.Repository.Get(GithubOwner, "DiagnosticSourceLogging");
+            var release = await client.Repository.Release.Get(GithubOwner, "DiagnosticSourceLogging", ReleaseTag);
+            if(release == null)
+            {
+                var newRelease = new NewRelease(ReleaseTag);
+                newRelease.Draft = true;
+                newRelease.Prerelease = false;
+                release = await client.Repository.Release.Create(repo.Id, newRelease);
+            }
+            foreach(var nupkgPath in nupkgs)
+            {
+                using var f = System.IO.File.OpenRead(nupkgPath);
+                var uploadAsset = new ReleaseAssetUpload(Path.GetFileName(nupkgPath), "application/zip", f, TimeSpan.FromMinutes(5));
+                await client.Repository.Release.UploadAsset(release, uploadAsset);
             }
         });
 }
