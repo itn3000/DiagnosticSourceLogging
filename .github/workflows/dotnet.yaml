@@ -37,14 +37,14 @@ jobs:
         uses: actions/github-script@v4
         with:
           result-encoding: string
-          script: return ${{github.ref}}.replace('refs/tags/', '')
+          script: return context.ref.replace('refs/tags/', '')
         if: ${{startsWith(github.ref, 'refs/tags')}}
       - name: get-heads-name
         id: get-heads-name
         uses: actions/github-script@v4
         with:
           result-encoding: string
-          script: return ${{github.ref}}.replace('refs/heads/', '')
+          script: return context.ref.replace('refs/heads/', '')
         if: ${{startsWith(github.ref, 'refs/heads')}}
       - name: display-heads-name
         run: echo ${{steps.get-heads-name.outputs.result}}
