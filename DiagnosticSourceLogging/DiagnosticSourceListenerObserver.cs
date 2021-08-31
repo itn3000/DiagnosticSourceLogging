@@ -12,7 +12,7 @@ namespace DiagnosticSourceLogging
         public const string Name = "Error";
         public string SourceName { get; }
         public Exception Error { get; }
-        public EventObserverErrorArg(string sourceName, Exception error)
+        internal EventObserverErrorArg(string sourceName, Exception error)
         {
             SourceName = sourceName;
             Error = error;
@@ -28,7 +28,7 @@ namespace DiagnosticSourceLogging
         public string SourceName { get; }
         public string EventName { get; }
         public Exception Error { get; }
-        public EventObserverProcessErrorArg(string sourceName, string eventName, Exception error)
+        internal EventObserverProcessErrorArg(string sourceName, string eventName, Exception error)
         {
             SourceName = sourceName;
             EventName = eventName;
@@ -43,7 +43,7 @@ namespace DiagnosticSourceLogging
     {
         public const string Name = "Completed";
         public string SourceName { get; }
-        public EventObserverCompletedArg(string sourceName)
+        internal EventObserverCompletedArg(string sourceName)
         {
             SourceName = sourceName;
         }

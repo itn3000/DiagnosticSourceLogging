@@ -23,7 +23,7 @@ namespace DiagnosticSourceLogging
             using var subscription = Prepare();
             if(_DS.IsEnabled("Start"))
             {
-                _DS.Write("Start", new { Name = typeof(T).Name });
+                _DS.Write("Start", null);
             }
             var sw = new System.Diagnostics.Stopwatch();
             while (!stoppingToken.IsCancellationRequested)
@@ -47,7 +47,7 @@ namespace DiagnosticSourceLogging
             sw.Stop();
             if(_DS.IsEnabled("Stop"))
             {
-                _DS.Write("Stop", new { Name = typeof(T).Name, Elapsed = sw.Elapsed });
+                _DS.Write("Stop", sw.Elapsed);
             }
         }
         IDisposable Prepare()

@@ -75,3 +75,23 @@ await Host.CreateDefaultBuilder()
     .RunConsoleAsync()
     ;
 ```
+
+# DiagnosticSource exported by this package
+
+## `DiagnosticSourceLogging.DiagnosticSourceLoggingService_[typename of T]`
+
+This is related on DiagnosticSourceLogging's background task.
+
+* `Start`
+    * argument is always null
+* `Stop`
+    * argument is TimeSpan, which means background task's running time
+* `Error`
+    * argument is Exception, which means error in background task
+
+## `DiagnosticSourceLogging.EventObserver`
+
+This is related on DiagnosticSource's observers.
+
+* `Completed`
+    * 
