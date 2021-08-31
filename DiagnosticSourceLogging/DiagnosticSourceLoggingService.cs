@@ -54,7 +54,7 @@ namespace DiagnosticSourceLogging
         {
             return DiagnosticListener
                 .AllListeners
-                .Subscribe(new DiagnosticSourceListenerObserver(_Options, _LoggerFactory));
+                .Subscribe(new DiagnosticListenerObserver(_Options, _LoggerFactory));
         }
     }
 }

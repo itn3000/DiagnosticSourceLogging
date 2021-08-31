@@ -7,111 +7,75 @@ using Microsoft.Extensions.Logging;
 namespace DiagnosticSourceLogging
 {
     using LoggerMessageFunction = Action<ILogger, string, Exception>;
-    public sealed class EventObserverErrorArg
+    /// <summary>DiagnosticSource event argument triggered by starting DiagnosticSource observation</summary>
+    /// <remarks>Source name is 'DiagnosticSourceLogging.DiagnosticListenerObserver'</remarks>
+    public sealed class ObserverStartingArg
     {
-        public const string Name = "Error";
+        public const string Name = "Starting";
         public string SourceName { get; }
-        public Exception Error { get; }
-        internal EventObserverErrorArg(string sourceName, Exception error)
+        public string TypeName { get; }
+        internal ObserverStartingArg(string typeName, string sourceName)
         {
             SourceName = sourceName;
-            Error = error;
+            TypeName = typeName;
         }
         public override string ToString()
         {
-            return $"{SourceName}: {Error}";
+            return $"Observation Starting: {TypeName}/{SourceName}";
         }
     }
-    public sealed class EventObserverProcessErrorArg
-    {
-        public const string Name = "ProcessError";
-        public string SourceName { get; }
-        public string EventName { get; }
-        public Exception Error { get; }
-        internal EventObserverProcessErrorArg(string sourceName, string eventName, Exception error)
-        {
-            SourceName = sourceName;
-            EventName = eventName;
-            Error = error;
-        }
-        public override string ToString()
-        {
-            return $"{SourceName}/{EventName}: {Error}";
-        }
-    }
-    public sealed class EventObserverCompletedArg
+    /// <summary>DiagnosticSource event argument triggered by completing DiagnosticSource observation</summary>
+    /// <remarks>Source name is 'DiagnosticSourceLogging.DiagnosticListenerObserver'</remarks>
+    public sealed class ObserverCompletedArg
     {
         public const string Name = "Completed";
-        public string SourceName { get; }
-        internal EventObserverCompletedArg(string sourceName)
+        /// <summary>DiagnosticSource name</summary>
+        public string TypeName { get; }
+        internal ObserverCompletedArg(string typeName)
         {
-            SourceName = sourceName;
+            TypeName = typeName;
         }
         public override string ToString()
         {
-            return SourceName;
+            return $"Observation Completed: {TypeName}";
         }
     }
-    internal sealed class EventObserver : IObserver<KeyValuePair<string, object>>
+    /// <summary>DiagnosticSource event argument triggered by unexpected error in DiagnosticSource observation</summary>
+    /// <remarks>Source name is 'DiagnosticSourceLogging.DiagnosticListenerObserver'</remarks>
+    public sealed class ObserverErrorArg
     {
-        private static readonly DiagnosticListener _InternalSource = new DiagnosticListener(Constants.EventObserverSourceName);
-        ILogger _Logger;
-        IDiagnosticSourceLoggingServiceOptions _Options;
-        string _SourceName;
-        public EventObserver(string sourceName, ILogger logger, IDiagnosticSourceLoggingServiceOptions options)
+        public const string Name = "Error";
+        /// <summary>error data</summary>
+        public Exception Error { get; }
+        public string TypeName { get; }
+        internal ObserverErrorArg(string typeName, Exception error)
         {
-            _SourceName = sourceName;
-            _Logger = logger;
-            _Options = options;
+            TypeName = typeName;
+            Error = error;
         }
-        public void OnCompleted()
+        public override string ToString()
         {
-            if (_InternalSource.IsEnabled(EventObserverCompletedArg.Name))
-            {
-                _InternalSource.Write(EventObserverCompletedArg.Name, new EventObserverCompletedArg(_SourceName));
-            }
-        }
-
-        public void OnError(Exception error)
-        {
-            if (_InternalSource.IsEnabled(EventObserverErrorArg.Name))
-            {
-                _InternalSource.Write(EventObserverErrorArg.Name, new EventObserverErrorArg(_SourceName, error));
-            }
-        }
-
-        public void OnNext(KeyValuePair<string, object> value)
-        {
-            var action = _Options.GetEventProcessor(_SourceName, value.Key);
-            try
-            {
-                action(_Logger, value.Key, value.Value);
-            }
-            catch (Exception e)
-            {
-                if (_InternalSource.IsEnabled(EventObserverProcessErrorArg.Name))
-                {
-                    _InternalSource.Write(EventObserverProcessErrorArg.Name, new EventObserverProcessErrorArg(_SourceName, value.Key, e));
-                }
-            }
+            return $"Observation Error: {TypeName}: {Error}";
         }
     }
-    internal sealed class DiagnosticSourceListenerObserver : IObserver<DiagnosticListener>
+    internal sealed class DiagnosticListenerObserver : IObserver<DiagnosticListener>
     {
-        public DiagnosticSourceListenerObserver(IDiagnosticSourceLoggingServiceOptions options, ILoggerFactory loggerFactory)
+        string _OptionName;
+        public DiagnosticListenerObserver(IDiagnosticSourceLoggingServiceOptions options, ILoggerFactory loggerFactory)
         {
             _Options = options;
             _LoggerFactory = loggerFactory;
+            _OptionName = options.GetType().Name;
         }
-        private static readonly DiagnosticListener _InternalSource = new DiagnosticListener($"{nameof(DiagnosticSourceLogging)}.{nameof(DiagnosticSourceListenerObserver)}");
+        private static readonly DiagnosticListener _InternalSource = new DiagnosticListener($"{nameof(DiagnosticSourceLogging)}.{nameof(DiagnosticListenerObserver)}");
         ConcurrentDictionary<string, IDisposable> _Subscriptions = new ConcurrentDictionary<string, IDisposable>();
         IDiagnosticSourceLoggingServiceOptions _Options;
         ILoggerFactory _LoggerFactory;
         public void OnCompleted()
         {
-            if (_InternalSource.IsEnabled("Completed"))
+            if (_InternalSource.IsEnabled(ObserverCompletedArg.Name))
             {
-                _InternalSource.Write("Completed", new { Name = _InternalSource.Name });
+                _InternalSource.Write(ObserverCompletedArg.Name, new ObserverCompletedArg(_OptionName));
             }
             foreach (var item in _Subscriptions.Keys)
             {
@@ -124,9 +88,9 @@ namespace DiagnosticSourceLogging
 
         public void OnError(Exception error)
         {
-            if (_InternalSource.IsEnabled("Error"))
+            if (_InternalSource.IsEnabled(ObserverErrorArg.Name))
             {
-                _InternalSource.Write("Error", new { Name = _InternalSource.Name, Error = error });
+                _InternalSource.Write(ObserverErrorArg.Name, new ObserverErrorArg(_OptionName, error));
             }
         }
 
@@ -134,6 +98,10 @@ namespace DiagnosticSourceLogging
         {
             if (_Options.ShouldListen(value) && _Subscriptions.TryAdd(value.Name, null))
             {
+                if (_InternalSource.IsEnabled(ObserverStartingArg.Name))
+                {
+                    _InternalSource.Write(ObserverStartingArg.Name, new ObserverStartingArg(_OptionName, value.Name));
+                }
                 string sourceName = value.Name;
                 _Subscriptions[sourceName] = value
                     .Subscribe(new EventObserver(sourceName,

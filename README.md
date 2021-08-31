@@ -91,7 +91,28 @@ This is related on DiagnosticSourceLogging's background task.
 
 ## `DiagnosticSourceLogging.EventObserver`
 
-This is related on DiagnosticSource's observers.
+This is related on personal DiagnosticSource's observers.
 
 * `Completed`
-    * 
+    * triggered when observer is completed
+    * argument is `DiagnosticSourceLogging.EventObserverCompletedArg`
+* `ProcessError`
+    * triggered when exception is raised in subscribe
+    * argument is `DiagnosticSourceLogging.EventObserverProcessErrorArg`
+* `Error`
+    * triggered when observer is interrupted by unexpected exception
+    * argument is `DiagnosticSourceLogging.EventObserverErrorArg`
+
+## `DiagnosticSourceLogging.DiagnosticListenerObserver`
+
+This is related on observing DiagnosticListener.AllListeners.
+
+* `Starting`
+    * triggered by starting observing DiagnosticListener
+    * argument is `DiagnosticSourceLogging.ObserverStartingArg`
+* `Completed`
+    * triggered by completing observing DiagnosticListener.AllListeners
+    * argument is `DiagnosticSourceLogging.ObserverCompletedArg`
+* `Error`
+    * triggered by unexpected error in observing DiagnosticListener.AllListeners
+    * argument is `DiagnosticSourceLogging.ObserverErrorArg`
