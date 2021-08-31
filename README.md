@@ -1,3 +1,5 @@
+[![NuGet Link](https://badgen.net/nuget/v/DiagnosticSourceLogging)](https://www.nuget.org/packages/DiagnosticSourceLogging)
+
 # DiagnosticSource output helper to ILogger
 
 DiagnosticSourceLogging is helper package for outputting DiagnosticSource to ILogger.
