@@ -7,6 +7,10 @@ namespace DiagnosticSourceLogging.Test
 {
     public class TestObserver
     {
+        public TestObserver()
+        {
+            _Listener.IsEnabled();
+        }
         const string ListenerName = "DiagnosticSourceLogging.Test.TestObserver";
         static readonly DiagnosticListener _Listener = new DiagnosticListener(ListenerName);
         class TestObserverOptions : IDiagnosticSourceLoggingServiceOptions
@@ -45,11 +49,43 @@ namespace DiagnosticSourceLogging.Test
             using var loggerFactory = new LoggerFactory();
             var options = new TestObserverOptions(_Listener);
             {
-                using var subscription = Observer.Subscribe(options, loggerFactory);
+                using var subscription = Observable.Subscribe(loggerFactory, options);
                 _Listener.Write("X", null);
             }
             _Listener.Write("X", null);
             Assert.Equal(1, options.Counter);
+        }
+        [Fact]
+        public void DelegateSubscribeTest()
+        {
+            using var loggerFactory = new LoggerFactory();
+            int counter = 0;
+            {
+                using var subscription = Observable.Subscribe(loggerFactory, (listener) => listener.Name == _Listener.Name,
+                    (src, ev) => (logger, ev, arg) => counter++);
+                if (_Listener.IsEnabled("X"))
+                {
+                    _Listener.Write("X", null);
+                }
+            }
+            _Listener.Write("X", null);
+            Assert.Equal(1, counter);
+        }
+        [Fact]
+        public void IsEnableFalseTest()
+        {
+            using var loggerFactory = new LoggerFactory();
+            int counter = 0;
+            {
+                using var subscription = Observable.Subscribe(loggerFactory, (listener) => listener.Name == _Listener.Name,
+                    (src, ev) => (logger, ev, arg) => counter++, (src, ev, arg1, arg2) => false);
+                if (_Listener.IsEnabled("X"))
+                {
+                    _Listener.Write("X", null);
+                }
+            }
+            _Listener.Write("X", null);
+            Assert.Equal(0, counter);
         }
     }
 }

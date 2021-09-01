@@ -76,6 +76,25 @@ await Host.CreateDefaultBuilder()
     ;
 ```
 
+## Running without GenericHost
+
+you can use `IDisposable DiagnosticSourceLogging.Observable.Subscribe(ILoggerFactory loggerFacotry, IDiagnosticSourceLoggingServiceOptions options)` too.
+
+```csharp
+var loggerFactory = new LoggerFactory();
+using var subscription = DiagnosticSourceLogging.Observable.Subscribe(loggerFactory, new MyDiagnosticSourceLoggingServiceOptions());
+// observe until subscription disposed
+```
+
+or you can use the way which does not implement option interface.
+
+```csharp
+var loggerFactory = new LoggerFactory();
+using var subscription = DiagnosticSourceLogging.Observable.Subscribe(loggerFactory, (listener) => listener.Name == "DiagnosticSourceName",
+                    (src, ev) => (logger, ev, arg) => Console.WriteLine($"event: {ev}, {arg}"), (src, ev, arg1, arg2) => true);
+// observe until subscription disposed
+```
+
 # DiagnosticSource exported by this package
 
 ## `DiagnosticSourceLogging.DiagnosticSourceLoggingService_[typename of T]`
