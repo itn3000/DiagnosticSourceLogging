@@ -93,7 +93,7 @@ class Build : NukeBuild
         .Executes(() =>
         {
             var packagedir = RootDirectory / "dist" / Configuration;
-            var nupkgs = !string.IsNullOrEmpty(VersionSuffix) ? GlobDirectories(packagedir, $"DiagnosticSourceLogging.*.{VersionSuffix}.*")
+            var nupkgs = !string.IsNullOrEmpty(VersionSuffix) ? GlobFiles(packagedir, $"DiagnosticSourceLogging.*.{VersionSuffix}.*")
                 : GlobFiles(packagedir, $"DiagnosticSourceLogging.*");
             foreach (var nupkgPath in nupkgs)
             {
@@ -116,7 +116,7 @@ class Build : NukeBuild
         .Executes(async () =>
         {
             var packagedir = RootDirectory / "dist" / Configuration;
-            var nupkgs = !string.IsNullOrEmpty(VersionSuffix) ? GlobDirectories(packagedir, $"DiagnosticSourceLogging.*.{VersionSuffix}.*")
+            var nupkgs = !string.IsNullOrEmpty(VersionSuffix) ? GlobFiles(packagedir, $"DiagnosticSourceLogging.*.{VersionSuffix}.*")
                 : GlobFiles(packagedir, $"DiagnosticSourceLogging.*");
             var client = new GitHubClient(new ProductHeaderValue("DiagnosticSourceLoggingClient"));
             var cred = new Credentials(GithubToken);
