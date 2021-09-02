@@ -45,6 +45,6 @@ jobs:
       - name: upload artifacts to nuget.org
         run: pwsh ./build.ps1 --target Push --api-key ${{ secrets.NUGET_API_KEY }} --package-source https://api.nuget.org/v3/index.json --configuration Release
         if: ${{startsWith(github.ref, 'refs/tags')}}
-      - name: create release on github
-        run: pwsh ./build.ps1 --target CreateGitHubRelease --github-token ${{secrets.GITHUB_TOKEN}} --github-owner itn3000 --configuration Release --release-tag ${{steps.get-tag-version.outputs.result}}
-        if: ${{startsWith(github.ref, 'refs/tags')}}
+      # - name: create release on github
+      #   run: pwsh ./build.ps1 --target CreateGitHubRelease --github-token ${{secrets.GITHUB_TOKEN}} --github-owner itn3000 --configuration Release --release-tag ${{steps.get-tag-version.outputs.result}}
+      #   if: ${{startsWith(github.ref, 'refs/tags')}}
