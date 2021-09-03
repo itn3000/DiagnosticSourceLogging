@@ -13,6 +13,7 @@ add following nuget packages to your project
 
 * DiagnosticSourceLogging
 * Microsoft.Extensions.Hosting
+    * do not need when `DiagnosticSourceLogging.Observable.Subscribe`(since 1.1.0)
 * [any package of ILogger destination](https://www.nuget.org/packages?q=Microsoft.Extensions.Logging)
 
 
